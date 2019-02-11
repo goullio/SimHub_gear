@@ -16,17 +16,21 @@ String DEVICE_NAME = String("SimHub Gear");
 uint8_t header = 0;
 char opt;
 
-int clockPin = 12;
-int dataPin = 11;
-int resetPin = 10;
+int clockPin = 1;
+int dataPin = 0;
+int latchPin = 4;
+int enablePin = 3;
 bool light_state = true;
 
 int dataArray[12];
 
 void setup() {
-  pinMode(resetPin, OUTPUT);
+  pinMode(latchPin, OUTPUT);
   pinMode(clockPin, OUTPUT);
   pinMode(dataPin, OUTPUT);
+  pinMode(enablePin, OUTPUT);
+
+  analogWrite(enablePin, 220);
 
   dataArray[0] = 0b11111100;
   dataArray[1] = 0b01100000;
@@ -41,16 +45,19 @@ void setup() {
   dataArray[10] = 0b00101010;
   dataArray[11] = 0b00001010;
 
-  digitalWrite(resetPin, HIGH);
-  delay(10);
-  digitalWrite(resetPin, LOW);
-
-
-  shiftOut(dataPin, clockPin, LSBFIRST, 255);
-  shiftOut(dataPin, clockPin, LSBFIRST, 255);
+  shiftOut(dataPin, clockPin, MSBFIRST, 255);
+  shiftOut(dataPin, clockPin, MSBFIRST, 255);
+  shiftOut(dataPin, clockPin, MSBFIRST, 255);
+  shiftOut(dataPin, clockPin, MSBFIRST, 255);
+  digitalWrite(latchPin, HIGH);
+  digitalWrite(latchPin, LOW);
   delay(500);
-  shiftOut(dataPin, clockPin, LSBFIRST, 0);
-  shiftOut(dataPin, clockPin, LSBFIRST, 0);
+  shiftOut(dataPin, clockPin, MSBFIRST, 0);
+  shiftOut(dataPin, clockPin, MSBFIRST, 0);
+  shiftOut(dataPin, clockPin, MSBFIRST, 0);
+  shiftOut(dataPin, clockPin, MSBFIRST, 0);
+  digitalWrite(latchPin, HIGH);
+  digitalWrite(latchPin, LOW);
 
 
 
@@ -173,43 +180,59 @@ void loop() {
         //FlowSerialDebugPrintLn("Shift2: " + String(ShiftLight2));
         //FlowSerialDebugPrintLn("Redline: " + String(RedLine));
         if (gear == "N") {
-          shiftOut(dataPin, clockPin, LSBFIRST, dataArray[10]);
-          //shiftOut(dataPin, clockPin, LSBFIRST, 0);
+          shiftOut(dataPin, clockPin, MSBFIRST, dataArray[10]);
+          digitalWrite(latchPin, HIGH);
+          digitalWrite(latchPin, LOW);
+          //shiftOut(dataPin, clockPin, MSBFIRST, 0);
         }
         else if (gear == "R") {
-          shiftOut(dataPin, clockPin, LSBFIRST, dataArray[11]);
-          //shiftOut(dataPin, clockPin, LSBFIRST, 0);
+          shiftOut(dataPin, clockPin, MSBFIRST, dataArray[11]);
+          digitalWrite(latchPin, HIGH);
+          digitalWrite(latchPin, LOW);
+          //shiftOut(dataPin, clockPin, MSBFIRST, 0);
         }
         else {
           int gear_num = gear.toInt();
-          shiftOut(dataPin, clockPin, LSBFIRST, dataArray[gear_num]);
-          //shiftOut(dataPin, clockPin, LSBFIRST, 0);
+          shiftOut(dataPin, clockPin, MSBFIRST, dataArray[gear_num]);
+          digitalWrite(latchPin, HIGH);
+          digitalWrite(latchPin, LOW);
+          //shiftOut(dataPin, clockPin, MSBFIRST, 0);
         }
 
         int RPMState;
         if (ShiftLight1 == 0) {
-          shiftOut(dataPin, clockPin, LSBFIRST, 0);
+          shiftOut(dataPin, clockPin, MSBFIRST, 0);
+          digitalWrite(latchPin, HIGH);
+          digitalWrite(latchPin, LOW);
           //FlowSerialDebugPrintLn("Low");
           RPMState = 0;
         }
         if (RedLine == 1) {
           if (light_state == true) {
-            shiftOut(dataPin, clockPin, LSBFIRST, 0b10010010);
+            shiftOut(dataPin, clockPin, MSBFIRST, 0b10010010);
+            digitalWrite(latchPin, HIGH);
+            digitalWrite(latchPin, LOW);;
             light_state = false;
           } else {
-            shiftOut(dataPin, clockPin, LSBFIRST, 0);
+            shiftOut(dataPin, clockPin, MSBFIRST, 0);
+            digitalWrite(latchPin, HIGH);
+            digitalWrite(latchPin, LOW);
             light_state = true;
           }
           FlowSerialDebugPrintLn("Light3");
           RPMState = 3;
         }
         else if (ShiftLight2 > 0.5) {
-          shiftOut(dataPin, clockPin, LSBFIRST, 0b00010010);
+          shiftOut(dataPin, clockPin, MSBFIRST, 0b00010010);
+          digitalWrite(latchPin, HIGH);
+          digitalWrite(latchPin, LOW);
           //FlowSerialDebugPrintLn("Light2");
           RPMState = 2;
         }
         else if (ShiftLight1 == 1) {
-          shiftOut(dataPin, clockPin, LSBFIRST, 0b00010000);
+          shiftOut(dataPin, clockPin, MSBFIRST, 0b00010000);
+          digitalWrite(latchPin, HIGH);
+          digitalWrite(latchPin, LOW);
           //FlowSerialDebugPrintLn("Light1");
           RPMState = 1;
         }
