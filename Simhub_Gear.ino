@@ -1,5 +1,11 @@
 
 #include "FlowSerialRead.h"
+#include "FastLED.h"
+
+#define NUM_LEDS 10
+#define PIXEL_PIN 31
+
+CRGB leds[NUM_LEDS];
 
 #define MESSAGE_HEADER 0x03
 
@@ -11,7 +17,7 @@ int ENABLE_ADA_HT16K33_7SEGMENTS = 0;
 int WS2812B_RGBLEDCOUNT = 0;
 int WS2801_RGBLEDCOUNT = 0;
 
-String DEVICE_NAME = String("SimHub Gear");
+String DEVICE_NAME = String("G29_SimHub_display-V1.0");
 
 uint8_t header = 0;
 char opt;
@@ -25,12 +31,16 @@ bool light_state = true;
 int dataArray[12];
 
 void setup() {
+  delay(2000);
+  FastLED.addLeds<WS2812B, PIXEL_PIN, GRB>(leds, NUM_LEDS);
+  FastLED.setBrightness(32);
+
   pinMode(latchPin, OUTPUT);
   pinMode(clockPin, OUTPUT);
   pinMode(dataPin, OUTPUT);
   pinMode(enablePin, OUTPUT);
 
-  analogWrite(enablePin, 220);
+  analogWrite(enablePin, 240);
 
   dataArray[0] = 0b11111100;
   dataArray[1] = 0b01100000;
@@ -51,13 +61,31 @@ void setup() {
   shiftOut(dataPin, clockPin, MSBFIRST, 255);
   digitalWrite(latchPin, HIGH);
   digitalWrite(latchPin, LOW);
-  delay(500);
+  delay(1000);
   shiftOut(dataPin, clockPin, MSBFIRST, 0);
   shiftOut(dataPin, clockPin, MSBFIRST, 0);
   shiftOut(dataPin, clockPin, MSBFIRST, 0);
   shiftOut(dataPin, clockPin, MSBFIRST, 0);
   digitalWrite(latchPin, HIGH);
   digitalWrite(latchPin, LOW);
+
+  for (int i = 0; i < NUM_LEDS; i++) {
+    if (i < 4) {
+      leds[i] = CRGB::Green;
+    } else if (i < 7) {
+      leds[i] = CRGB::Blue;
+    } else {
+      leds[i] = CRGB::Red;
+    }
+    FastLED.show();
+    delay(50);
+  }
+
+  for (int i = NUM_LEDS - 1 ; i >= 0; i--) {
+    leds[i] = CRGB::Black;
+    FastLED.show();
+    delay(50);
+  }
 
 
 
@@ -171,69 +199,98 @@ void loop() {
 
 
         String gear = FlowSerialReadStringUntil(';');
-        int ShiftLight1 = FlowSerialReadStringUntil(';').toInt();
+        float ShiftLight1 = FlowSerialReadStringUntil(';').toFloat();
         float ShiftLight2 = FlowSerialReadStringUntil(';').toFloat();
         int RedLine = FlowSerialReadStringUntil(';').toInt();
-        float RPM = FlowSerialReadStringUntil('\n').toFloat();
+        int speedkmh = FlowSerialReadStringUntil('\n').toInt();
         //FlowSerialDebugPrintLn("Gear: " + gear);
         //FlowSerialDebugPrintLn("Shift1: " + String(ShiftLight1));
         //FlowSerialDebugPrintLn("Shift2: " + String(ShiftLight2));
         //FlowSerialDebugPrintLn("Redline: " + String(RedLine));
+        shiftOut(dataPin, clockPin, MSBFIRST, dataArray[speedkmh % 10]);
+        shiftOut(dataPin, clockPin, MSBFIRST, dataArray[(speedkmh/10) % 10]);
+        shiftOut(dataPin, clockPin, MSBFIRST, dataArray[(speedkmh/100) % 10]);
         if (gear == "N") {
           shiftOut(dataPin, clockPin, MSBFIRST, dataArray[10]);
-          digitalWrite(latchPin, HIGH);
-          digitalWrite(latchPin, LOW);
           //shiftOut(dataPin, clockPin, MSBFIRST, 0);
         }
         else if (gear == "R") {
           shiftOut(dataPin, clockPin, MSBFIRST, dataArray[11]);
-          digitalWrite(latchPin, HIGH);
-          digitalWrite(latchPin, LOW);
           //shiftOut(dataPin, clockPin, MSBFIRST, 0);
         }
         else {
           int gear_num = gear.toInt();
           shiftOut(dataPin, clockPin, MSBFIRST, dataArray[gear_num]);
-          digitalWrite(latchPin, HIGH);
-          digitalWrite(latchPin, LOW);
+
           //shiftOut(dataPin, clockPin, MSBFIRST, 0);
         }
-
-        int RPMState;
-        if (ShiftLight1 == 0) {
-          shiftOut(dataPin, clockPin, MSBFIRST, 0);
           digitalWrite(latchPin, HIGH);
           digitalWrite(latchPin, LOW);
-          //FlowSerialDebugPrintLn("Low");
+        int RPMState;
+        if (ShiftLight1 == 0) {
+          for (int i = 0; i < NUM_LEDS; i ++) {
+            leds[i] = CRGB::Black;
+          }
+          FastLED.show();
           RPMState = 0;
         }
         if (RedLine == 1) {
           if (light_state == true) {
-            shiftOut(dataPin, clockPin, MSBFIRST, 0b10010010);
-            digitalWrite(latchPin, HIGH);
-            digitalWrite(latchPin, LOW);;
+            for (int i = 0; i < NUM_LEDS; i++) {
+              if (i < 4) {
+                leds[i] = CRGB::Green;
+              } else if (i < 7) {
+                leds[i] = CRGB::Blue;
+              } else {
+                leds[i] = CRGB::Red;
+              }
+            }
+            FastLED.show();
             light_state = false;
           } else {
-            shiftOut(dataPin, clockPin, MSBFIRST, 0);
-            digitalWrite(latchPin, HIGH);
-            digitalWrite(latchPin, LOW);
+            for (int i = 0; i < NUM_LEDS; i++) {
+              leds[i] = CRGB::Black;
+            }
+            FastLED.show();
             light_state = true;
           }
           FlowSerialDebugPrintLn("Light3");
           RPMState = 3;
         }
-        else if (ShiftLight2 > 0.5) {
-          shiftOut(dataPin, clockPin, MSBFIRST, 0b00010010);
-          digitalWrite(latchPin, HIGH);
-          digitalWrite(latchPin, LOW);
-          //FlowSerialDebugPrintLn("Light2");
-          RPMState = 2;
+        else if (ShiftLight2 > 0.6) {
+          for (int i = 0; i < NUM_LEDS; i++) {
+            if (i < 4) {
+              leds[i] = CRGB::Green;
+            } else if (i < 7) {
+              leds[i] = CRGB::Blue;
+            } else {
+              leds[i] = CRGB::Red;
+            }
+          }
+          FastLED.show();
         }
-        else if (ShiftLight1 == 1) {
-          shiftOut(dataPin, clockPin, MSBFIRST, 0b00010000);
-          digitalWrite(latchPin, HIGH);
-          digitalWrite(latchPin, LOW);
-          //FlowSerialDebugPrintLn("Light1");
+        else if (ShiftLight2 > 0.25) {
+          for (int i = 0; i < NUM_LEDS; i++) {
+            if (i < 4) {
+              leds[i] = CRGB::Green;
+            } else if (i < 7) {
+              leds[i] = CRGB::Blue;
+            } else {
+              leds[i] = CRGB::Black;
+            }
+          }
+          RPMState = 2;
+          FastLED.show();
+        }
+        else if (ShiftLight1 > 0.9) {
+          for (int i = 0; i < NUM_LEDS; i++) {
+            if (i < 4) {
+              leds[i] = CRGB::Green;
+            } else {
+              leds[i] = CRGB::Black;
+            }
+          }
+          FastLED.show();
           RPMState = 1;
         }
         if (RPMState != 3) {
