@@ -28,6 +28,9 @@ int latchPin = 4;
 int enablePin = 3;
 bool light_state = true;
 
+int blinkcounter = 0;
+int blinksteps = 20;
+
 int dataArray[12];
 
 void setup() {
@@ -198,18 +201,34 @@ void loop() {
         // NCALC: isnull([DataCorePlugin.GameData.NewData.Gear],'N') + ';' + [DataCorePlugin.GameData.NewData.CarSettings_RPMShiftLight1] + ';' + [DataCorePlugin.GameData.NewData.CarSettings_RPMShiftLight2] + ';' + [DataCorePlugin.GameData.NewData.CarSettings_RPMRedLineReached] + ';' + [DataCorePlugin.GameData.NewData.FilteredRpms]
 
 
+        int brightness_shiftlight = FlowSerialReadStringUntil(';').toInt();
+        int brightness_segment = FlowSerialReadStringUntil(';').toInt();
         String gear = FlowSerialReadStringUntil(';');
         float ShiftLight1 = FlowSerialReadStringUntil(';').toFloat();
         float ShiftLight2 = FlowSerialReadStringUntil(';').toFloat();
         int RedLine = FlowSerialReadStringUntil(';').toInt();
-        int speedkmh = FlowSerialReadStringUntil('\n').toInt();
-        //FlowSerialDebugPrintLn("Gear: " + gear);
-        //FlowSerialDebugPrintLn("Shift1: " + String(ShiftLight1));
-        //FlowSerialDebugPrintLn("Shift2: " + String(ShiftLight2));
-        //FlowSerialDebugPrintLn("Redline: " + String(RedLine));
-        shiftOut(dataPin, clockPin, MSBFIRST, dataArray[speedkmh % 10]);
-        shiftOut(dataPin, clockPin, MSBFIRST, dataArray[(speedkmh/10) % 10]);
-        shiftOut(dataPin, clockPin, MSBFIRST, dataArray[(speedkmh/100) % 10]);
+        float delta = FlowSerialReadStringUntil(';').toFloat();
+        int yellowFlag = FlowSerialReadStringUntil(';').toInt();
+        int blueFlag = FlowSerialReadStringUntil('\n').toInt();
+
+        FastLED.setBrightness(brightness_shiftlight);
+        analogWrite(enablePin, 255 - brightness_segment);
+
+        float absdelta = abs(delta * 10);
+
+        if (delta > 0) {
+          shiftOut(dataPin, clockPin, MSBFIRST, dataArray[((int) absdelta ) % 10]);
+          shiftOut(dataPin, clockPin, MSBFIRST, dataArray[((int) absdelta / 10) % 10] | 0b00000001);
+          shiftOut(dataPin, clockPin, MSBFIRST, dataArray[((int) absdelta / 100) % 10]);
+        } else if (absdelta < 100) {
+          shiftOut(dataPin, clockPin, MSBFIRST, dataArray[((int) absdelta ) % 10]);
+          shiftOut(dataPin, clockPin, MSBFIRST, dataArray[((int) absdelta / 10) % 10] | 0b00000001);
+          shiftOut(dataPin, clockPin, MSBFIRST, 0b00000010);
+        } else {
+          shiftOut(dataPin, clockPin, MSBFIRST, dataArray[((int) absdelta / 10) % 10]);
+          shiftOut(dataPin, clockPin, MSBFIRST, dataArray[((int) absdelta / 100) % 10]);
+          shiftOut(dataPin, clockPin, MSBFIRST, 0b00000010);
+        }
         if (gear == "N") {
           shiftOut(dataPin, clockPin, MSBFIRST, dataArray[10]);
           //shiftOut(dataPin, clockPin, MSBFIRST, 0);
@@ -224,14 +243,13 @@ void loop() {
 
           //shiftOut(dataPin, clockPin, MSBFIRST, 0);
         }
-          digitalWrite(latchPin, HIGH);
-          digitalWrite(latchPin, LOW);
+        digitalWrite(latchPin, HIGH);
+        digitalWrite(latchPin, LOW);
         int RPMState;
+        for (int i = 0; i < NUM_LEDS; i ++) {
+          leds[i] = CRGB::Black;
+        }
         if (ShiftLight1 == 0) {
-          for (int i = 0; i < NUM_LEDS; i ++) {
-            leds[i] = CRGB::Black;
-          }
-          FastLED.show();
           RPMState = 0;
         }
         if (RedLine == 1) {
@@ -245,13 +263,13 @@ void loop() {
                 leds[i] = CRGB::Red;
               }
             }
-            FastLED.show();
+
             light_state = false;
           } else {
             for (int i = 0; i < NUM_LEDS; i++) {
               leds[i] = CRGB::Black;
             }
-            FastLED.show();
+
             light_state = true;
           }
           FlowSerialDebugPrintLn("Light3");
@@ -267,7 +285,7 @@ void loop() {
               leds[i] = CRGB::Red;
             }
           }
-          FastLED.show();
+
         }
         else if (ShiftLight2 > 0.25) {
           for (int i = 0; i < NUM_LEDS; i++) {
@@ -280,7 +298,7 @@ void loop() {
             }
           }
           RPMState = 2;
-          FastLED.show();
+
         }
         else if (ShiftLight1 > 0.9) {
           for (int i = 0; i < NUM_LEDS; i++) {
@@ -290,12 +308,35 @@ void loop() {
               leds[i] = CRGB::Black;
             }
           }
-          FastLED.show();
+
           RPMState = 1;
+        }
+        if (yellowFlag == 1) {
+          if (blinkcounter < blinksteps) {
+            leds[0] = CRGB::Yellow;
+          } else {
+            leds[NUM_LEDS - 1] = CRGB::Yellow;
+          }
+          blinkcounter++;
+          if (blinkcounter > blinksteps * 2) {
+            blinkcounter = 0;
+          }
+        }
+        if (blueFlag == 1) {
+          if (blinkcounter < blinksteps) {
+            leds[NUM_LEDS - 1] = CRGB::Blue;
+          } else {
+            leds[0] = CRGB::Blue;
+          }
+          blinkcounter++;
+          if (blinkcounter > blinksteps * 2) {
+            blinkcounter = 0;
+          }
         }
         if (RPMState != 3) {
           light_state = true;
         }
+        FastLED.show();
       }
     }
   }
