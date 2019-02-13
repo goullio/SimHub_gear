@@ -20,6 +20,7 @@ int WS2812B_RGBLEDCOUNT = 0;
 int WS2801_RGBLEDCOUNT = 0;
 
 String DEVICE_NAME = String("G29_SimHub_display-V1.0");
+String MCU_TYPE = String("ATSAMND21G18");
 
 uint8_t header = 0;
 char opt;
@@ -202,6 +203,14 @@ void loop() {
       if (opt == '4') {
         FlowSerialWrite((byte)(WS2812B_RGBLEDCOUNT + WS2801_RGBLEDCOUNT));
         FlowSerialFlush();
+      }
+
+      if (opt == 'X'){
+        String xaction = FlowSerialReadStringUntil('\n');
+        if (xaction == F("mcutype")){
+          FlowSerialPrint(MCU_TYPE);
+          FlowSerialFlush();
+        }
       }
       if (opt == 'P') {
         // NCALC: isnull([DataCorePlugin.GameData.NewData.Gear],'N') + ';' + [DataCorePlugin.GameData.NewData.CarSettings_RPMShiftLight1] + ';' + [DataCorePlugin.GameData.NewData.CarSettings_RPMShiftLight2] + ';' + [DataCorePlugin.GameData.NewData.CarSettings_RPMRedLineReached] + ';' + [DataCorePlugin.GameData.NewData.FilteredRpms]
