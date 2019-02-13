@@ -7,6 +7,8 @@
 
 CRGB leds[NUM_LEDS];
 
+CRGB colors[3];
+
 #define MESSAGE_HEADER 0x03
 
 int ENABLED_BUTTONS_COUNT = 0;
@@ -45,6 +47,10 @@ void setup() {
 
   analogWrite(enablePin, 240);
 
+  colors[0] = CRGB::Green;
+  colors[1] = CRGB::Red;
+  colors[2] = CRGB::Blue;
+  
   dataArray[0] = 0b11111100;
   dataArray[1] = 0b01100000;
   dataArray[2] = 0b11011010;
@@ -74,11 +80,11 @@ void setup() {
 
   for (int i = 0; i < NUM_LEDS; i++) {
     if (i < 4) {
-      leds[i] = CRGB::Green;
+      leds[i] = colors[0];
     } else if (i < 7) {
-      leds[i] = CRGB::Blue;
+      leds[i] = colors[1];
     } else {
-      leds[i] = CRGB::Red;
+      leds[i] = colors[2];
     }
     FastLED.show();
     delay(50);
@@ -256,11 +262,11 @@ void loop() {
           if (light_state == true) {
             for (int i = 0; i < NUM_LEDS; i++) {
               if (i < 4) {
-                leds[i] = CRGB::Green;
+                leds[i] = colors[0];
               } else if (i < 7) {
-                leds[i] = CRGB::Blue;
+                leds[i] = colors[1];
               } else {
-                leds[i] = CRGB::Red;
+                leds[i] = colors[2];
               }
             }
 
@@ -278,11 +284,11 @@ void loop() {
         else if (ShiftLight2 > 0.6) {
           for (int i = 0; i < NUM_LEDS; i++) {
             if (i < 4) {
-              leds[i] = CRGB::Green;
+              leds[i] = colors[0];
             } else if (i < 7) {
-              leds[i] = CRGB::Blue;
+              leds[i] = colors[1];
             } else {
-              leds[i] = CRGB::Red;
+              leds[i] = colors[2];
             }
           }
 
@@ -290,9 +296,9 @@ void loop() {
         else if (ShiftLight2 > 0.25) {
           for (int i = 0; i < NUM_LEDS; i++) {
             if (i < 4) {
-              leds[i] = CRGB::Green;
+              leds[i] = colors[0];
             } else if (i < 7) {
-              leds[i] = CRGB::Blue;
+              leds[i] = colors[1];
             } else {
               leds[i] = CRGB::Black;
             }
@@ -303,7 +309,7 @@ void loop() {
         else if (ShiftLight1 > 0.9) {
           for (int i = 0; i < NUM_LEDS; i++) {
             if (i < 4) {
-              leds[i] = CRGB::Green;
+              leds[i] = colors[0];
             } else {
               leds[i] = CRGB::Black;
             }
