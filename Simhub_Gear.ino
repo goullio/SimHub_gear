@@ -32,7 +32,9 @@ int enablePin = 3;
 bool light_state = true;
 
 int blinkcounter = 0;
-int blinksteps = 20;
+int blinksteps = 15;
+int rpmblinkcounter = 0;
+int rpmblinksteps = 5;
 
 int dataArray[12];
 
@@ -224,7 +226,8 @@ void loop() {
         int RedLine = FlowSerialReadStringUntil(';').toInt();
         float delta = FlowSerialReadStringUntil(';').toFloat();
         int yellowFlag = FlowSerialReadStringUntil(';').toInt();
-        int blueFlag = FlowSerialReadStringUntil('\n').toInt();
+        int blueFlag = FlowSerialReadStringUntil(';').toInt();
+        String dummy = FlowSerialReadStringUntil('\n');
 
         FastLED.setBrightness(brightness_shiftlight);
         analogWrite(enablePin, 255 - brightness_segment);
@@ -268,7 +271,7 @@ void loop() {
           RPMState = 0;
         }
         if (RedLine == 1) {
-          if (light_state == true) {
+          if (rpmblinkcounter < rpmblinksteps) {
             for (int i = 0; i < NUM_LEDS; i++) {
               if (i < 4) {
                 leds[i] = colors[0];
@@ -279,18 +282,21 @@ void loop() {
               }
             }
 
-            light_state = false;
+            rpmblinkcounter++;
           } else {
             for (int i = 0; i < NUM_LEDS; i++) {
               leds[i] = CRGB::Black;
             }
 
-            light_state = true;
+            rpmblinkcounter++;
+            if(rpmblinkcounter > rpmblinksteps * 2){
+              rpmblinkcounter = 0;
+            }
           }
           FlowSerialDebugPrintLn("Light3");
           RPMState = 3;
         }
-        else if (ShiftLight2 > 0.6) {
+        else if (ShiftLight2 > 0.75) {
           for (int i = 0; i < NUM_LEDS; i++) {
             if (i < 4) {
               leds[i] = colors[0];
@@ -350,6 +356,7 @@ void loop() {
         }
         if (RPMState != 3) {
           light_state = true;
+          rpmblinkcounter = 0;
         }
         FastLED.show();
       }
